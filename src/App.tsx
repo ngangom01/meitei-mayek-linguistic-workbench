@@ -94,7 +94,7 @@ export default function App() {
     const item: ReviewItem = {
       id, category: '', glyph: '', unicodeSequence: '', displayLabel: 'New review item',
       letterName: '', pronunciation: '', writingNotes: '', syllableExamples: '',
-      variantNotes: '', sourceReference: '', reviewStatus: 'not_reviewed',
+      variantNotes: '', sourceReference: '', reviewStatus: 'not_reviewed', audioReviewStatus: 'not_reviewed',
       expertNotes: '', createdAt: now, updatedAt: now
     }
     await db.items.add(item)
@@ -220,6 +220,7 @@ export default function App() {
         variantNotes: '',
         sourceReference: '',
         reviewStatus: 'not_reviewed',
+        audioReviewStatus: 'not_reviewed',
         expertNotes: ''
       }]
     }
@@ -254,9 +255,9 @@ export default function App() {
     </header>
 
     <nav className="tabs" aria-label="Main navigation">
-      <button className={tab === 'home' ? 'active' : ''} onClick={() => setTab('home')}>Overview</button>
-      <button className={tab === 'review' ? 'active' : ''} onClick={() => setTab('review')}>Review workspace <span className="count">{items.length}</span></button>
-      <button className={tab === 'share' ? 'active' : ''} onClick={() => setTab('share')}>Backup & share</button>
+      <button disabled={recording} className={tab === 'home' ? 'active' : ''} onClick={() => setTab('home')}>Overview</button>
+      <button disabled={recording} className={tab === 'review' ? 'active' : ''} onClick={() => setTab('review')}>Review workspace <span className="count">{items.length}</span></button>
+      <button disabled={recording} className={tab === 'share' ? 'active' : ''} onClick={() => setTab('share')}>Backup & share</button>
     </nav>
 
     <div className="status-message" role="status">{message}</div>
@@ -297,7 +298,7 @@ export default function App() {
 
     {tab === 'review' && <section className="review-layout">
       <aside className="panel item-list">
-        <div className="section-head"><div><p className="eyebrow">ASSIGNED MATERIAL</p><h2>Review items <span className="count">{items.length}</span></h2></div><button className="small-button" onClick={() => void addBlankItem()}>＋ Add</button></div>
+        <div className="section-head"><div><p className="eyebrow">ASSIGNED MATERIAL</p><h2>Review items <span className="count">{items.length}</span></h2></div><button className="small-button" disabled={recording} onClick={() => void addBlankItem()}>＋ Add</button></div>
         <input className="search-input" aria-label="Search review items" placeholder="Search glyph, label or ID…" value={search} onChange={event => setSearch(event.target.value)} />
         <select className="filter-select" aria-label="Filter by status" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
           <option value="all">All review statuses</option>
@@ -306,7 +307,7 @@ export default function App() {
         </select>
         {filteredItems.length === 0 && <div className="empty-list"><strong>{items.length ? 'No matching items' : 'No items yet'}</strong><p>{items.length ? 'Try another search or status filter.' : 'Import assigned items or create the first record.'}</p></div>}
         <div className="item-scroll">
-          {filteredItems.map(item => <button key={item.id} className={'item-row ' + (selected === item.id ? 'chosen' : '')} onClick={() => setSelected(item.id)}>
+          {filteredItems.map(item => <button key={item.id} className={'item-row ' + (selected === item.id ? 'chosen' : '')} disabled={recording} onClick={() => setSelected(item.id)}>
             <span className="item-glyph">{item.glyph || '—'}</span><span className="item-text"><strong>{item.displayLabel || 'Untitled item'}</strong><span>{item.category || 'Uncategorised'} · {item.id.slice(0, 12)}</span><em className={'status status-' + item.reviewStatus}>{statusLabels[item.reviewStatus]}</em></span>
           </button>)}
         </div>
@@ -315,7 +316,7 @@ export default function App() {
 
       <section className="panel editor">
         {!active ? <div className="editor-empty"><div className="empty-symbol">ꯃ</div><h2>Select a review item</h2><p>Choose a record from the list or import assigned items.</p><button className="primary" onClick={() => void addBlankItem()}>Create review item</button></div> : <>
-          <div className="editor-heading"><div><p className="eyebrow">RECORD REVIEW</p><h2>{active.glyph || active.displayLabel}</h2><p className="record-id">Record ID: <code>{active.id}</code></p></div><button className="quiet danger" onClick={() => void deleteItem(active)}>Delete item</button></div>
+          <div className="editor-heading"><div><p className="eyebrow">RECORD REVIEW</p><h2>{active.glyph || active.displayLabel}</h2><p className="record-id">Record ID: <code>{active.id}</code></p></div><button className="quiet danger" disabled={recording} onClick={() => void deleteItem(active)}>Delete item</button></div>
 
           <div className="identity-strip">
             <div><span>Glyph / character</span><strong className="large-glyph">{active.glyph || '—'}</strong></div>
@@ -336,7 +337,10 @@ export default function App() {
             <label>Review status<select value={active.reviewStatus} onChange={e => void updateItem(active.id, { reviewStatus: e.target.value as ReviewStatus })}>
               {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select></label>
-            <label className="full">Private expert comments<textarea rows={3} value={active.expertNotes} onChange={e => void updateItem(active.id, { expertNotes: e.target.value })} placeholder="Corrections, reasoning, caveats or questions for the Academy owner." /></label>
+            <label>Audio review status<select value={active.audioReviewStatus} onChange={e => void updateItem(active.id, { audioReviewStatus: e.target.value as ReviewItem['audioReviewStatus'] })}>
+              <option value="not_reviewed">Not reviewed</option><option value="accepted">Accepted</option><option value="needs_rerecording">Needs new recording</option>
+            </select></label>
+            <label className="full">Expert comments (included in review submission)<textarea rows={3} value={active.expertNotes} onChange={e => void updateItem(active.id, { expertNotes: e.target.value })} placeholder="Corrections, reasoning, caveats or questions for the Academy owner." /></label>
           </div>
 
           <div className="recording-panel">
