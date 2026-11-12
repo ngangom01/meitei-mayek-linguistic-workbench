@@ -52,6 +52,7 @@ export default function App() {
     let cancelled = false
     async function initialiseWorkspace() {
       try {
+        let retiredRemoved = 0
         // Remove the video and BOSEM chapter queue from older local Workbench
         // versions without touching the character records or other expert work.
         await db.transaction('rw', db.items, db.audio, async () => {
@@ -62,6 +63,7 @@ export default function App() {
             if (isRetiredSource) {
               await db.audio.where('itemId').equals(item.id).delete()
               await db.items.delete(item.id)
+              retiredRemoved++
               continue
             }
             let category = item.category
@@ -107,10 +109,15 @@ export default function App() {
           })
           await refreshItems()
           if (!cancelled) {
-            setMessage('Preloaded ' + inserted + ' review item(s) from the project dataset. Existing local items were kept unchanged.')
+            setMessage(retiredRemoved > 0
+              ? 'Review queue updated: removed ' + retiredRemoved + ' retired video/chapter item(s) and preserved the remaining local reviews.'
+              : 'Preloaded ' + inserted + ' review item(s) from the project dataset. Existing local items were kept unchanged.')
           }
         } else {
           await refreshItems()
+          if (retiredRemoved > 0 && !cancelled) {
+            setMessage('Review queue updated: removed ' + retiredRemoved + ' retired video/chapter item(s) and preserved the remaining local reviews.')
+          }
         }
       } catch (error) {
         await refreshItems()
