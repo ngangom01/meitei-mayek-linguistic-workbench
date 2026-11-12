@@ -1,4 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="15" fill="#304c37"/>
-  <text x="32" y="45" text-anchor="middle" font-size="40" fill="#ffffff" font-family="sans-serif">ꯃ</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Meitei Mayek Linguistic Review Workbench</title>
+  <desc id="desc">An open book with a sound wave, representing language and pronunciation review.</desc>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="#304c37"/>
+  <path d="M31 47h7l6-10 7 23 8-31 8 34 8-23 6 11h8" fill="none" stroke="#e6b56b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18 65c14-5 29-2 46 9v30c-17-11-32-14-46-9z" fill="#f4f4ec"/>
+  <path d="M64 74c17-11 32-14 46-9v30c-14-5-29-2-46 9z" fill="#e7ece3"/>
+  <path d="M64 74v30" fill="none" stroke="#304c37" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M27 78c10-3 19-1 28 4M27 86c10-2 19 0 28 5M73 82c9-5 18-7 28-4M73 91c9-5 18-7 28-5" fill="none" stroke="#9aa996" stroke-width="2.2" stroke-linecap="round"/>
 </svg>
