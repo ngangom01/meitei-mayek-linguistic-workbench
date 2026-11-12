@@ -185,6 +185,9 @@ export default function App() {
   }, [])
 
   const active = items.find(item => item.id === selected)
+  const isCombinationTask = active?.id === 'task.combinations.syllables'
+  const isPronunciationTask = active?.id === 'task.pronunciation.audio'
+  const isCharacterRecord = Boolean(active && !isCombinationTask && !isPronunciationTask)
   const recordingBusy = recording || requestingRecording || preparingMicrophone
   const categories = useMemo(() => [...new Set(items.map(item => item.category).filter(Boolean))].sort(), [items])
   const filteredItems = useMemo(() => {
@@ -202,6 +205,12 @@ export default function App() {
     const current = await db.items.get(id)
     if (!current) return
     const updated = { ...current, ...patch, updatedAt: new Date().toISOString() }
+    if (id === 'task.combinations.syllables' && ('syllableExamples' in patch || 'sourceReference' in patch)) {
+      const hasCombinations = Boolean(updated.syllableExamples.trim())
+      const source = updated.sourceReference.trim()
+      const hasRealSource = Boolean(source) && !source.startsWith('Expert to cite')
+      updated.reviewStatus = hasCombinations && hasRealSource ? 'reviewed' : (hasCombinations || hasRealSource ? 'in_progress' : 'not_reviewed')
+    }
     await db.items.put(updated)
     setItems(rows => rows.map(row => row.id === id ? updated : row).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)))
     setMessage('✓ Changes saved on this device.')
@@ -237,9 +246,20 @@ export default function App() {
   async function deleteAudio(sample: AudioSample) {
     if (!window.confirm('Delete this recording from this device?')) return
     await db.audio.delete(sample.id)
+    const remainingSamples = await db.audio.where('itemId').equals(sample.itemId).count()
+    if (remainingSamples === 0 && !sample.itemId.startsWith('task.')) {
+      const item = await db.items.get(sample.itemId)
+      if (item) {
+        const resetItem = { ...item, reviewStatus: 'not_reviewed' as ReviewStatus, audioReviewStatus: 'not_reviewed' as ReviewItem['audioReviewStatus'], updatedAt: new Date().toISOString() }
+        await db.items.put(resetItem)
+        setItems(rows => rows.map(row => row.id === sample.itemId ? resetItem : row))
+      }
+    }
     setAudioSamples(rows => rows.filter(row => row.id !== sample.id))
     setTotalAudioCount(await db.audio.count())
-    setMessage('Recording deleted from this device.')
+    setMessage(remainingSamples === 0 && !sample.itemId.startsWith('task.')
+      ? 'Recording deleted. This character is marked as awaiting a recording.'
+      : 'Recording deleted from this device.')
   }
 
   async function prepareMicrophone() {
@@ -312,6 +332,14 @@ export default function App() {
             label: 'Pronunciation ' + (count + 1)
           }
           await db.audio.add(sample)
+          if (!itemId.startsWith('task.')) {
+            const item = await db.items.get(itemId)
+            if (item) {
+              const reviewedItem = { ...item, reviewStatus: 'reviewed' as ReviewStatus, audioReviewStatus: 'accepted' as ReviewItem['audioReviewStatus'], updatedAt: new Date().toISOString() }
+              await db.items.put(reviewedItem)
+              setItems(rows => rows.map(row => row.id === itemId ? reviewedItem : row))
+            }
+          }
           if (selected === itemId) setAudioSamples(await db.audio.where('itemId').equals(itemId).sortBy('createdAt'))
           setTotalAudioCount(await db.audio.count())
           setMessage('Recording saved locally. Play it back to check the sound.')
@@ -500,34 +528,66 @@ export default function App() {
           <div className="editor-heading"><div><p className="eyebrow">RECORD REVIEW</p><h2>{active.glyph || active.displayLabel}</h2><p className="record-id">Record ID: <code>{active.id}</code></p></div><button className="quiet danger" disabled={recordingBusy} onClick={() => void deleteItem(active)}>Delete item</button></div>
 
           <div className="identity-strip">
-            <div><span>Glyph / character</span><strong className="large-glyph">{active.glyph || '—'}</strong></div>
-            <div><span>Unicode sequence</span><strong className="unicode">{active.unicodeSequence || 'Not supplied'}</strong></div>
+            <div><span>{isCombinationTask || isPronunciationTask ? 'Review task' : 'Character / sign'}</span><strong className={isCharacterRecord ? 'large-glyph' : 'task-name'}>{isCharacterRecord ? (active.glyph || '—') : active.displayLabel}</strong></div>
+            {isCharacterRecord && <div><span>Unicode reference</span><strong className="unicode">{active.unicodeSequence || 'Not supplied'}</strong></div>}
+            {isCharacterRecord && <div className="reference-category"><span>Category</span><strong>{active.category}</strong></div>}
           </div>
 
-          <div className="form-grid">
-            <label>Display label<input value={active.displayLabel} onChange={e => void updateItem(active.id, { displayLabel: e.target.value })} placeholder="e.g. source-provided label" /></label>
-            <label>Category<input value={active.category} onChange={e => void updateItem(active.id, { category: e.target.value })} placeholder="e.g. category from source" /></label>
-            <label>Glyph / character<input value={active.glyph} onChange={e => void updateItem(active.id, { glyph: e.target.value })} placeholder="Paste the supplied character" /></label>
-            <label>Unicode sequence<input value={active.unicodeSequence} onChange={e => void updateItem(active.id, { unicodeSequence: e.target.value })} placeholder="Exact code point(s), if known" /></label>
-            <label>Letter / character name<input value={active.letterName} onChange={e => void updateItem(active.id, { letterName: e.target.value })} placeholder="Expert-verified name" /></label>
-            <label>Pronunciation guidance<input value={active.pronunciation} onChange={e => void updateItem(active.id, { pronunciation: e.target.value })} placeholder="Phonetic notes / variants" /></label>
-            <label className="full">Writing / stroke-order notes<textarea rows={3} value={active.writingNotes} onChange={e => void updateItem(active.id, { writingNotes: e.target.value })} placeholder="Describe the observed writing method or point to a source." /></label>
-            <label className="full">Syllables / combinations / examples<textarea rows={3} value={active.syllableExamples} onChange={e => void updateItem(active.id, { syllableExamples: e.target.value })} placeholder="Record source examples and expert corrections." /></label>
-            <label className="full">Variants or unresolved questions<textarea rows={2} value={active.variantNotes} onChange={e => void updateItem(active.id, { variantNotes: e.target.value })} placeholder="Record variant forms, uncertainty or questions." /></label>
-            <label>Source reference<input value={active.sourceReference} onChange={e => void updateItem(active.id, { sourceReference: e.target.value })} placeholder="Book, chapter, page, video timestamp or URL…" /></label>
-            {active.sourceReference.match(/https?:\/\/[^\s]+/g) && <div className="source-links full">{(active.sourceReference.match(/https?:\/\/[^\s]+/g) || []).map(url => <a key={url} href={url} target="_blank" rel="noreferrer">Open source reference ↗</a>)}</div>}
-            <label>Review status<select value={active.reviewStatus} onChange={e => void updateItem(active.id, { reviewStatus: e.target.value as ReviewStatus })}>
-              {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select></label>
-            <label>Audio review status<select value={active.audioReviewStatus} onChange={e => void updateItem(active.id, { audioReviewStatus: e.target.value as ReviewItem['audioReviewStatus'] })}>
-              <option value="not_reviewed">Not reviewed</option><option value="accepted">Accepted</option><option value="needs_rerecording">Needs new recording</option>
-            </select></label>
-            <label className="full">Expert comments (included in review submission)<textarea rows={3} value={active.expertNotes} onChange={e => void updateItem(active.id, { expertNotes: e.target.value })} placeholder="Corrections, reasoning, caveats or questions for the Academy owner." /></label>
-          </div>
+          {isCharacterRecord && <>
+            <div className="expert-instructions">
+              <h3>What you need to do</h3>
+              <ol>
+                <li><strong>Record the sound.</strong> This is the only required contribution for this character.</li>
+                <li><strong>Listen once.</strong> Keep the recording if it is clear; otherwise delete and record again.</li>
+                <li><strong>Add a note only when needed.</strong> Mention a meaningful dialect difference, alternative sound or uncertainty.</li>
+              </ol>
+              <p>Character names, glyphs and Unicode references are supplied for identification. Please do not re-enter them.</p>
+            </div>
+            <div className="optional-notes">
+              <label>Optional note — only for a variant or uncertainty
+                <textarea rows={2} value={active.expertNotes} onChange={e => void updateItem(active.id, { expertNotes: e.target.value })} placeholder="For example: explain a pronunciation variant, dialect context or anything the recording cannot clarify." />
+              </label>
+            </div>
+          </>}
 
-          <div className="recording-panel">
-            <div className="section-head"><div><p className="eyebrow">AUDIO REVIEW</p><h3>Pronunciation recordings</h3></div><span className="count">{audioSamples.length} sample(s)</span></div>
-            <p className="muted compact">Record one or more samples. The original audio is kept locally and included in the review ZIP.</p>
+          {isCombinationTask && <div className="task-form">
+            <div className="expert-instructions">
+              <h3>What you need to provide</h3>
+              <ol>
+                <li>Enter only combinations confirmed in a reliable Meitei teaching or linguistic source.</li>
+                <li>Include the exact written form and the source page, chapter or link.</li>
+                <li>Leave out combinations that are only technically possible but not verified.</li>
+              </ol>
+            </div>
+            <label>Confirmed combinations
+              <textarea rows={5} value={active.syllableExamples} onChange={e => void updateItem(active.id, { syllableExamples: e.target.value })} placeholder="Enter one source-confirmed combination per line. Include its exact Meitei Mayek form and any source-provided example or Roman form." />
+            </label>
+            <label>Source reference(s)
+              <input value={active.sourceReference.startsWith('Expert to cite') ? '' : active.sourceReference} onChange={e => void updateItem(active.id, { sourceReference: e.target.value })} placeholder="Book title, author, page/chapter, or reliable URL" />
+            </label>
+            <label>Optional note — alternatives or unresolved cases
+              <textarea rows={2} value={active.variantNotes} onChange={e => void updateItem(active.id, { variantNotes: e.target.value })} placeholder="Explain any uncertainty or accepted alternative, if relevant." />
+            </label>
+          </div>}
+
+          {isPronunciationTask && <div className="task-form">
+            <div className="expert-instructions">
+              <h3>General pronunciation guidance (optional)</h3>
+              <p>Individual character sounds should be recorded on their own character pages. Use this task only for general pronunciation rules, connected examples, or context-dependent patterns that do not belong to one character.</p>
+            </div>
+            <label>General pronunciation note
+              <textarea rows={4} value={active.pronunciation} onChange={e => void updateItem(active.id, { pronunciation: e.target.value })} placeholder="Add a general rule or explanation only when it helps interpret the individual recordings." />
+            </label>
+            <label>Optional source reference
+              <input value={active.sourceReference.startsWith('Expert to cite') ? '' : active.sourceReference} onChange={e => void updateItem(active.id, { sourceReference: e.target.value })} placeholder="Book, page, chapter, or reliable URL" />
+            </label>
+          </div>}
+
+          {!isCombinationTask && <div className="recording-panel">
+            <div className="section-head"><div><p className="eyebrow">{isCharacterRecord ? 'REQUIRED AUDIO' : 'OPTIONAL AUDIO'}</p><h3>{isCharacterRecord ? 'Record this character’s sound' : 'General pronunciation sample'}</h3></div><span className="count">{audioSamples.length} sample(s)</span></div>
+            <p className="muted compact">{isCharacterRecord
+              ? 'At least one clear sample is required for this character. Add another only for a meaningful pronunciation variant. Audio is saved locally.'
+              : 'Use this only for a general spoken example that is not already covered by individual character recordings.'}</p>
             <div className="record-controls">
               {!microphoneReady ? <button
                 type="button"
@@ -572,8 +632,8 @@ export default function App() {
             <p className="record-hint">{microphoneReady
               ? 'Hold the button while speaking. Release anywhere to stop and save the recording.'
               : 'First time only: enable microphone access, then the press-and-hold recording control will appear.'}</p>
-            {audioSamples.length > 0 ? <div className="audio-list">{audioSamples.map(sample => <AudioRow key={sample.id} sample={sample} onDelete={() => void deleteAudio(sample)} />)}</div> : <p className="audio-empty">No recordings attached to this item yet.</p>}
-          </div>
+            {audioSamples.length > 0 ? <div className="audio-list">{audioSamples.map(sample => <AudioRow key={sample.id} sample={sample} onDelete={() => void deleteAudio(sample)} />)}</div> : <p className="audio-empty">{isCharacterRecord ? 'No sound recorded yet. One recording is required to complete this character.' : 'No general pronunciation sample attached. This is optional.'}</p>}
+          </div>}
 
           <div className="editor-bottom"><span>✓ Changes save automatically on this device.</span><span>Last updated: {new Date(active.updatedAt).toLocaleString()}</span></div>
         </>}
