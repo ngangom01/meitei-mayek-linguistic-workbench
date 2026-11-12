@@ -5,7 +5,7 @@ button{border:1px solid #d7dcd1;background:#fff;color:#253026;border-radius:9px;
 button:hover{border-color:#82927e;background:#f7f9f5}button:disabled{opacity:.45;cursor:not-allowed}
 .shell{max-width:1240px;margin:0 auto;padding:28px 26px 36px}
 .topbar{display:flex;align-items:center;gap:15px;padding:4px 0 22px;border-bottom:1px solid #dfe3d9}
-.brand-mark{width:50px;height:50px;display:grid;place-items:center;border-radius:15px;background:#314c39;color:white;font-family:'Noto Sans Meetei Mayek',sans-serif;font-size:29px}
+.brand-mark{width:50px;height:50px;display:block;flex:0 0 50px;object-fit:contain;border-radius:15px;background:#304c37}
 .brand-title{flex:1}.eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;color:#70796d;margin:0 0 7px}
 .brand-title h1{font-size:23px;line-height:1.2;margin:0;font-weight:700;letter-spacing:-.035em}
 .brand-title p{font-size:12px;color:#778074;margin:5px 0 0}
@@ -87,7 +87,7 @@ button:hover{border-color:#82927e;background:#f7f9f5}button:disabled{opacity:.45
 .privacy-panel ul{padding-left:18px;margin:12px 0}.privacy-panel li{font-size:11px;color:#6f796b;line-height:1.6;margin:7px 0}
 .hidden-input{display:none}footer{text-align:center;font-size:9px;color:#9aa194;padding:22px 0 0}footer span{padding:0 5px;color:#c2c7bd}
 @media(max-width:900px){.shell{padding:20px 16px 30px}.review-layout{grid-template-columns:270px minmax(0,1fr)}.home-grid{grid-template-columns:1fr 1fr}.hero{grid-column:1/-1}}
-@media(max-width:680px){.shell{padding:14px 10px 24px}.topbar{align-items:flex-start;flex-wrap:wrap}.brand-mark{width:43px;height:43px}.brand-title{min-width:calc(100% - 65px)}.brand-title h1{font-size:19px}.local-tag{margin-left:58px}.tabs{gap:0}.tabs button{padding:9px 10px;font-size:10px}.home-grid,.review-layout,.share-grid{grid-template-columns:1fr}.hero,.guidance{grid-column:auto}.hero h2{font-size:26px}.item-list{position:static}.item-scroll{max-height:300px}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}.audio-row{grid-template-columns:1fr auto}.audio-row audio{grid-column:1/-1;grid-row:2}.audio-row .quiet{grid-column:2;grid-row:1}.editor-bottom{flex-direction:column}.metric-grid{gap:6px}.metric-grid div{padding:10px 7px}.metric-grid strong{font-size:22px}}
+@media(max-width:680px){.shell{padding:14px 10px 24px}.topbar{align-items:flex-start;flex-wrap:wrap}.brand-mark{width:43px;height:43px;flex-basis:43px}.brand-title{min-width:calc(100% - 65px)}.brand-title h1{font-size:19px}.local-tag{margin-left:58px}.tabs{gap:0}.tabs button{padding:9px 10px;font-size:10px}.home-grid,.review-layout,.share-grid{grid-template-columns:1fr}.hero,.guidance{grid-column:auto}.hero h2{font-size:26px}.item-list{position:static}.item-scroll{max-height:300px}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}.audio-row{grid-template-columns:1fr auto}.audio-row audio{grid-column:1/-1;grid-row:2}.audio-row .quiet{grid-column:2;grid-row:1}.editor-bottom{flex-direction:column}.metric-grid{gap:6px}.metric-grid div{padding:10px 7px}.metric-grid strong{font-size:22px}}
 
 .source-links{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;margin-top:-5px}.source-links a{font-size:10px;color:#526f4a;text-decoration:underline;text-underline-offset:2px}.source-links a:hover{color:#304c37}
 
