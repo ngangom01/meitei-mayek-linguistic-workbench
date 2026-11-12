@@ -7,7 +7,7 @@ An independent, local-first review tool for one or two linguistic experts. Impor
 Open the deployed HTTPS link. On the first visit in a browser, the Workbench automatically loads the focused review queue (48 records) from `public/review-items.json`. The expert can begin in **Review workspace** immediately.
 
 - For each of the 46 character/sign records, the expert's only required contribution is one clear pronunciation recording.
-- Character names, glyphs, categories and Unicode references are supplied by the Workbench and are not re-entered by the expert.
+- Experts can edit the Meitei Mayek form (a character, word or combination), add its English/Roman name or spelling, and set a category. The English/Roman field is saved separately from pronunciation.
 - Extra audio samples and notes are optional and should be added only for meaningful pronunciation variants or uncertainty.
 - The combination task accepts only source-confirmed combinations and requires a source reference.
 - The general pronunciation task is optional and is reserved for patterns not covered by individual character recordings.
@@ -39,6 +39,7 @@ The initial project dataset contains 27 core letters, 8 lonsum/consonants, 8 Che
       "glyph": "",
       "unicodeSequence": "",
       "displayLabel": "",
+      "romanForm": "",
       "letterName": "",
       "pronunciation": "",
       "writingNotes": "",
