@@ -6,9 +6,12 @@ An independent, local-first review tool for one or two linguistic experts. Impor
 
 Open the deployed HTTPS link. On the first visit in a browser, the Workbench automatically loads the focused review queue (48 records) from `public/review-items.json`. The expert can begin in **Review workspace** immediately.
 
-- Review fields: glyph, Unicode sequence, character name, pronunciation, writing notes, syllable/combination examples, variants and source references.
-- Linguistic review and audio review have separate statuses.
-- Audio: record multiple samples, replay them, and delete a sample.
+- For each of the 46 character/sign records, the expert's only required contribution is one clear pronunciation recording.
+- Character names, glyphs, categories and Unicode references are supplied by the Workbench and are not re-entered by the expert.
+- Extra audio samples and notes are optional and should be added only for meaningful pronunciation variants or uncertainty.
+- The combination task accepts only source-confirmed combinations and requires a source reference.
+- The general pronunciation task is optional and is reserved for patterns not covered by individual character recordings.
+- Recording a character's sound marks its audio review complete. Deleting its last recording returns it to the awaiting-recording state.
 - Backup: export and restore all local items and recordings.
 - Submission: export/share a ZIP containing review data and original audio.
 
