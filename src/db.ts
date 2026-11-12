@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 
 export type ReviewStatus = 'not_reviewed' | 'in_progress' | 'needs_clarification' | 'reviewed'
+export type AudioReviewStatus = 'not_reviewed' | 'accepted' | 'needs_rerecording'
 
 export interface ReviewItem {
   id: string
@@ -15,6 +16,7 @@ export interface ReviewItem {
   variantNotes: string
   sourceReference: string
   reviewStatus: ReviewStatus
+  audioReviewStatus: AudioReviewStatus
   expertNotes: string
   createdAt: string
   updatedAt: string
@@ -31,6 +33,7 @@ export interface AudioSample {
 }
 
 const statuses: ReviewStatus[] = ['not_reviewed', 'in_progress', 'needs_clarification', 'reviewed']
+const audioStatuses: AudioReviewStatus[] = ['not_reviewed', 'accepted', 'needs_rerecording']
 
 export function normalizeReviewItem(value: unknown): ReviewItem | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
@@ -39,6 +42,9 @@ export function normalizeReviewItem(value: unknown): ReviewItem | null {
   const now = new Date().toISOString()
   const status = typeof row.reviewStatus === 'string' && statuses.includes(row.reviewStatus as ReviewStatus)
     ? row.reviewStatus as ReviewStatus
+    : 'not_reviewed'
+  const audioStatus = typeof row.audioReviewStatus === 'string' && audioStatuses.includes(row.audioReviewStatus as AudioReviewStatus)
+    ? row.audioReviewStatus as AudioReviewStatus
     : 'not_reviewed'
   const text = (key: string) => typeof row[key] === 'string' ? row[key] as string : ''
   return {
@@ -54,6 +60,7 @@ export function normalizeReviewItem(value: unknown): ReviewItem | null {
     variantNotes: text('variantNotes'),
     sourceReference: text('sourceReference'),
     reviewStatus: status,
+    audioReviewStatus: audioStatus,
     expertNotes: text('expertNotes'),
     createdAt: typeof row.createdAt === 'string' ? row.createdAt : now,
     updatedAt: typeof row.updatedAt === 'string' ? row.updatedAt : now
@@ -85,6 +92,15 @@ class WorkbenchDB extends Dexie {
       await tx.table('audio').toCollection().modify(sample => {
         const row = sample as AudioSample
         if (typeof row.label !== 'string') row.label = 'Pronunciation sample'
+      })
+    })
+    this.version(3).stores({
+      items: 'id, category, reviewStatus, audioReviewStatus, updatedAt',
+      audio: 'id, itemId, createdAt'
+    }).upgrade(async tx => {
+      await tx.table('items').toCollection().modify(item => {
+        const row = item as ReviewItem
+        if (typeof row.audioReviewStatus !== 'string') row.audioReviewStatus = 'not_reviewed'
       })
     })
   }
