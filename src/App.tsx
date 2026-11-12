@@ -264,7 +264,7 @@ export default function App() {
     setAudioSamples(rows => rows.filter(row => row.id !== sample.id))
     setTotalAudioCount(await db.audio.count())
     setMessage(remainingSamples === 0 && !sample.itemId.startsWith('task.')
-      ? 'Recording deleted. This character is marked as awaiting a recording.'
+      ? 'Recording deleted. This item is marked as awaiting a recording.'
       : 'Recording deleted from this device.')
   }
 
@@ -544,7 +544,7 @@ export default function App() {
           <div className="editor-heading"><div><p className="eyebrow">RECORD REVIEW</p><h2>{active.glyph || active.romanForm || active.displayLabel}</h2><p className="record-id">Record ID: <code>{active.id}</code></p></div><button className="quiet danger" disabled={recordingBusy} onClick={() => void deleteItem(active)}>Delete item</button></div>
 
           <div className="identity-strip">
-            <div><span>{isCombinationTask || isPronunciationTask ? 'Review task' : 'Character / sign'}</span><strong className={isCharacterRecord ? 'large-glyph' : 'task-name'}>{isCharacterRecord ? (active.glyph || active.romanForm || '—') : active.displayLabel}</strong></div>
+            <div><span>{isCombinationTask || isPronunciationTask ? 'Review task' : 'Character / word / sign'}</span><strong className={isCharacterRecord ? 'large-glyph' : 'task-name'}>{isCharacterRecord ? (active.glyph || active.romanForm || '—') : active.displayLabel}</strong></div>
             {isCharacterRecord && <div><span>Unicode reference</span><strong className="unicode">{active.unicodeSequence || 'Not supplied'}</strong></div>}
             {isCharacterRecord && <div className="reference-category"><span>Category</span><strong>{active.category}</strong></div>}
           </div>
@@ -577,7 +577,7 @@ export default function App() {
             <div className="expert-instructions">
               <h3>What you need to do</h3>
               <ol>
-                <li><strong>Record the sound.</strong> This is the only required contribution for this character.</li>
+                <li><strong>Record the sound.</strong> This is the only required contribution for this item.</li>
                 <li><strong>Listen once.</strong> Keep the recording if it is clear; otherwise delete and record again.</li>
                 <li><strong>Add a note only when needed.</strong> Mention a meaningful dialect difference, alternative sound or uncertainty.</li>
               </ol>
