@@ -278,7 +278,9 @@ export default function App() {
     setMessage('Allow microphone access in the browser prompt. This setup is needed only once on this device.')
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      stream.getTracks().forEach(track => track.stop())
+      // Keep the microphone stream warm after permission is granted. Reusing it
+      // avoids the extra getUserMedia startup delay for every press-and-hold.
+      streamRef.current = stream
       setMicrophoneReady(true)
       setMessage('Microphone ready. Press and hold the recording button; release it to stop and save the sample.')
     } catch (error) {
@@ -305,9 +307,15 @@ export default function App() {
     setRequestingRecording(true)
     setMessage('Starting microphone… keep holding the button.')
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // Reuse the already-authorised microphone stream for near-immediate start.
+      // Only request a new stream if the browser/device has ended the warm stream.
+      let stream = streamRef.current
+      if (!stream || stream.getAudioTracks().every(track => track.readyState !== 'live')) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        streamRef.current = stream
+      }
       if (!recordingIntentRef.current) {
-        stream.getTracks().forEach(track => track.stop())
+        if (stream !== streamRef.current) stream.getTracks().forEach(track => track.stop())
         setRequestingRecording(false)
         return
       }
@@ -323,8 +331,8 @@ export default function App() {
       recorder.onstop = async () => {
         const durationMs = Math.max(0, Date.now() - startedAtRef.current)
         const blob = new Blob(chunks, { type: recorder.mimeType || mimeType || 'application/octet-stream' })
-        stream.getTracks().forEach(track => track.stop())
-        streamRef.current = null
+        // Keep the authorised stream open between samples; it is stopped when
+        // the Workbench closes or the browser page is unloaded.
         recorderRef.current = null
         recordingIntentRef.current = false
         recordPressActiveRef.current = false
