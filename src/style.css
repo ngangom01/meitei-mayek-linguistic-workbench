@@ -183,3 +183,9 @@ footer{font-size:12px}
 @supports (-webkit-touch-callout:none){
   input,textarea,select{font-size:16px!important}
 }
+
+
+/* Editable identity fields for expert-added characters, words and combinations */
+.item-detail-fields{margin:17px 0 12px;padding:15px;background:#f8f9f6;border:1px solid #e9ede5;border-radius:10px}
+.item-detail-fields label{font-size:13px;line-height:1.5;color:#52604f}
+.item-detail-fields input{margin-top:6px}
