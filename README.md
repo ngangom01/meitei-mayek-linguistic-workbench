@@ -7,7 +7,7 @@ An independent, local-first review tool for one or two linguistic experts. Impor
 Open the deployed HTTPS link, then choose **Import review items** or **New review item**.
 
 - Review fields: glyph, Unicode sequence, character name, pronunciation, writing notes, syllable/combination examples, variants and source references.
-- Review status: not reviewed, in progress, needs clarification, reviewed.
+- Linguistic review and audio review have separate statuses.
 - Audio: record multiple samples, replay them, and delete a sample.
 - Backup: export and restore all local items and recordings.
 - Submission: export/share a ZIP containing review data and original audio.
@@ -23,9 +23,9 @@ Open the deployed HTTPS link, then choose **Import review items** or **New revie
 
 ## Import format
 
-Use **Download JSON template** in the app. Each record must have a stable, unique \`id\`. The format is:
+Use **Download JSON template** in the app. Each record must have a stable, unique `id`. The format is:
 
-\`\`\`json
+```json
 {
   "format": "mayek-workbench-items",
   "version": 1,
@@ -43,45 +43,44 @@ Use **Download JSON template** in the app. Each record must have a stable, uniqu
       "variantNotes": "",
       "sourceReference": "",
       "reviewStatus": "not_reviewed",
+      "audioReviewStatus": "not_reviewed",
       "expertNotes": ""
     }
   ]
 }
-\`\`\`
+```
 
 Duplicate IDs are skipped on import; existing records are never silently overwritten. The JSON import uses this Workbench format and does not guess the Academy data schema.
 
 ## Review submission
 
-The submission ZIP includes \`review-items.json\`, \`audio-index.json\`, and the original audio recordings. It is a Workbench review package, not a direct Academy import file. The Academy owner validates and applies approved changes separately.
+The submission ZIP includes `review-items.json`, `audio-index.json`, and the original audio recordings. It is a Workbench review package, not a direct Academy import file. The Academy owner validates and applies approved changes separately.
 
 ## Run locally
 
-Requirements: Node.js 20+ and npm. Do not upload \`node_modules\`; npm recreates it from the package manifest.
+Requirements: Node.js 20+ and npm. Do not upload `node_modules`; npm recreates it from the package manifest.
 
-\`\`\`powershell
+```powershell
 npm install
 npm run dev
-\`\`\`
+```
 
 ## Build
 
-\`\`\`powershell
+```powershell
 npm run build
 npm run preview
-\`\`\`
+```
 
 ## GitHub Pages
 
-This repository is configured to deploy automatically from the \`main\` branch using GitHub Actions. In the repository settings, set:
+This repository is configured to deploy automatically from the `main` branch using GitHub Actions. In repository settings, set **Settings → Pages → Build and deployment → Source → GitHub Actions**.
 
-**Settings → Pages → Build and deployment → Source → GitHub Actions**
-
-The expert-facing link is:
+**Expert-facing link:**
 
 https://ngangom01.github.io/meitei-mayek-linguistic-workbench/
 
-The GitHub repository page displays source code; share the \`github.io\` link above with the expert.
+The GitHub repository page displays source code; share the `github.io` link above with the expert.
 
 ## Privacy and browser support
 
