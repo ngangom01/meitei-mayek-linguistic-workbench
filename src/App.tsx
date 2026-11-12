@@ -339,12 +339,13 @@ export default function App() {
   }
 
   function stopRecording() {
+    const wasStarting = recordingIntentRef.current && !recorderRef.current
     recordingIntentRef.current = false
     if (recorderRef.current && recorderRef.current.state !== 'inactive') {
       recorderRef.current.stop()
       return
     }
-    if (requestingRecording) {
+    if (wasStarting) {
       setRequestingRecording(false)
       setMessage('Recording cancelled before the microphone was ready.')
     }
