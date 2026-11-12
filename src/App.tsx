@@ -455,13 +455,14 @@ export default function App() {
     setMessage('Review package prepared. Share or send the ZIP to the Academy owner for validation.')
   }
 
-  const reviewedCount = items.filter(item => item.reviewStatus === 'reviewed').length
-  const needsAttention = items.filter(item => item.reviewStatus === 'needs_clarification').length
+  const requiredItems = items.filter(item => item.id !== 'task.pronunciation.audio')
+  const reviewedCount = requiredItems.filter(item => item.reviewStatus === 'reviewed').length
+  const openCount = requiredItems.length - reviewedCount
 
   return <main className="shell">
     <header className="topbar">
       <div className="brand-mark" aria-hidden="true">ꯃ</div>
-      <div className="brand-title"><div className="eyebrow">MEITEI MAYEK ACADEMY · EXPERT TOOL</div><h1>Linguistic Review Workbench</h1><p>Review content, record pronunciation, return feedback.</p></div>
+      <div className="brand-title"><div className="eyebrow">MEITEI MAYEK ACADEMY · EXPERT TOOL</div><h1>Linguistic Review Workbench</h1><p>Capture pronunciation, add optional notes, return expert feedback.</p></div>
       <span className="local-tag"><span className="live-dot" /> Stored on this device</span>
     </header>
 
@@ -487,12 +488,12 @@ export default function App() {
       <div className="panel summary-panel">
         <p className="eyebrow">LOCAL REVIEW STATUS</p>
         <div className="metric-grid">
-          <div><strong>{items.length}</strong><span>Total items</span></div>
-          <div><strong>{reviewedCount}</strong><span>Reviewed</span></div>
-          <div><strong>{needsAttention}</strong><span>Need clarification</span></div>
+          <div><strong>{requiredItems.length}</strong><span>Required tasks</span></div>
+          <div><strong>{reviewedCount}</strong><span>Complete</span></div>
+          <div><strong>{openCount}</strong><span>Still open</span></div>
         </div>
-        <div className="progress-track"><span style={{ width: items.length ? (Math.round(reviewedCount / items.length * 100) + '%') : '0%' }} /></div>
-        <p className="small">{items.length ? (Math.round(reviewedCount / items.length * 100) + '% of items marked reviewed') : 'No review items loaded yet'}</p>
+        <div className="progress-track"><span style={{ width: requiredItems.length ? (Math.round(reviewedCount / requiredItems.length * 100) + '%') : '0%' }} /></div>
+        <p className="small">{requiredItems.length ? (Math.round(reviewedCount / requiredItems.length * 100) + '% of required tasks complete. The general pronunciation task is optional.') : 'No review items loaded yet'}</p>
         <div className="home-shortcuts">
           <button onClick={() => importItemsRef.current?.click()}>Import review items (JSON)</button>
           <button onClick={downloadTemplate}>Download import template</button>
@@ -565,10 +566,10 @@ export default function App() {
                 <li>Leave out combinations that are only technically possible but not verified.</li>
               </ol>
             </div>
-            <label>Confirmed combinations
+            <label>Confirmed combinations (required)
               <textarea rows={5} value={active.syllableExamples} onChange={e => void updateItem(active.id, { syllableExamples: e.target.value })} placeholder="Enter one source-confirmed combination per line. Include its exact Meitei Mayek form and any source-provided example or Roman form." />
             </label>
-            <label>Source reference(s)
+            <label>Source reference(s) (required)
               <input value={active.sourceReference.startsWith('Expert to cite') ? '' : active.sourceReference} onChange={e => void updateItem(active.id, { sourceReference: e.target.value })} placeholder="Book title, author, page/chapter, or reliable URL" />
             </label>
             <label>Optional note — alternatives or unresolved cases
@@ -658,7 +659,7 @@ export default function App() {
       <div className="panel">
         <p className="eyebrow">RETURN EXPERT FEEDBACK</p><h2>Prepare review submission</h2>
         <p className="muted">The review package includes all items, expert notes and associated audio. Use the device share sheet where available, or download the ZIP and attach it manually.</p>
-        <div className="submission-summary"><div><strong>{items.length}</strong><span>Items included</span></div><div><strong>{reviewedCount}</strong><span>Marked reviewed</span></div></div>
+        <div className="submission-summary"><div><strong>{items.length}</strong><span>Items included</span></div><div><strong>{reviewedCount}</strong><span>Required tasks complete</span></div></div>
         <button className="primary" disabled={!items.length} onClick={() => void prepareSubmission()}>Prepare and share review ZIP</button>
         <p className="small warning-note">This is a Workbench review package, not yet a direct Academy import. The Academy owner must validate and map approved changes.</p>
       </div>
