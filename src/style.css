@@ -90,3 +90,96 @@ button:hover{border-color:#82927e;background:#f7f9f5}button:disabled{opacity:.45
 @media(max-width:680px){.shell{padding:14px 10px 24px}.topbar{align-items:flex-start;flex-wrap:wrap}.brand-mark{width:43px;height:43px}.brand-title{min-width:calc(100% - 65px)}.brand-title h1{font-size:19px}.local-tag{margin-left:58px}.tabs{gap:0}.tabs button{padding:9px 10px;font-size:10px}.home-grid,.review-layout,.share-grid{grid-template-columns:1fr}.hero,.guidance{grid-column:auto}.hero h2{font-size:26px}.item-list{position:static}.item-scroll{max-height:300px}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}.audio-row{grid-template-columns:1fr auto}.audio-row audio{grid-column:1/-1;grid-row:2}.audio-row .quiet{grid-column:2;grid-row:1}.editor-bottom{flex-direction:column}.metric-grid{gap:6px}.metric-grid div{padding:10px 7px}.metric-grid strong{font-size:22px}}
 
 .source-links{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;margin-top:-5px}.source-links a{font-size:10px;color:#526f4a;text-decoration:underline;text-underline-offset:2px}.source-links a:hover{color:#304c37}
+
+
+/* Expert-first typography and simplified review fields */
+body{font-size:15px}
+.eyebrow{font-size:12px;letter-spacing:.11em}
+.brand-title p{font-size:14px}
+.local-tag{font-size:13px}
+.tabs button{font-size:14px}
+.count{font-size:12px;min-width:24px;height:23px}
+.status-message{font-size:14px;line-height:1.45;padding:11px 14px}
+.muted{font-size:15px;line-height:1.6}
+.actions button,.home-shortcuts button,.share-grid .panel>button{font-size:14px}
+.privacy-note{font-size:13px;line-height:1.6}
+.metric-grid span{font-size:12px}
+.small{font-size:12px;line-height:1.6}
+.step>span{font-size:14px}
+.step strong{font-size:14px}
+.step p{font-size:13px;line-height:1.55}
+.section-head h2{font-size:19px}
+.small-button{font-size:13px}
+.search-input,.filter-select,.editor input,.editor textarea,.editor select{font-size:16px;padding:12px 13px}
+.item-text strong{font-size:14px}
+.item-text>span{font-size:12px}
+.status{font-size:11px}
+.empty-list strong{font-size:14px}
+.empty-list p{font-size:13px}
+.text-button{font-size:12px}
+.editor-heading h2{font-size:27px}
+.record-id{font-size:12px}
+.quiet{font-size:12px}
+.identity-strip span{font-size:12px}
+.unicode{font-size:14px}
+.task-name{font-size:17px;line-height:1.35}
+.reference-category strong{font-size:13px}
+.form-grid label,.task-form label,.optional-notes label{font-size:14px;line-height:1.5}
+.recording-panel h3{font-size:17px}
+.compact{font-size:14px}
+.record-button,.mic-setup-button{font-size:14px;min-height:48px}
+.record-hint{font-size:13px}
+.audio-meta strong{font-size:13px}
+.audio-meta span{font-size:11px}
+.audio-empty{font-size:13px}
+.editor-bottom{font-size:12px}
+.editor-empty h2{font-size:21px}
+.editor-empty p{font-size:14px}
+.share-grid h2{font-size:21px}
+.backup-stats span,.submission-summary span{font-size:13px}
+.privacy-panel li{font-size:13px;line-height:1.65}
+footer{font-size:12px}
+
+/* Simple expert task instructions */
+.expert-instructions{margin:16px 0;padding:16px 18px;background:#f4f7f1;border:1px solid #e3eadf;border-radius:11px}
+.expert-instructions h3{font-size:17px;margin:0 0 9px;color:#304c37}
+.expert-instructions ol{margin:0;padding-left:21px}
+.expert-instructions li,.expert-instructions p{font-size:14px;line-height:1.6;color:#596653;margin:6px 0}
+.expert-instructions li strong{color:#344b37}
+.expert-instructions p{margin:10px 0 0}
+.optional-notes,.task-form{display:flex;flex-direction:column;gap:13px;margin-top:16px}
+.optional-notes label,.task-form label{display:block;color:#52604f;font-weight:600}
+.optional-notes textarea,.task-form textarea,.task-form input{display:block;width:100%;margin-top:7px;font-size:16px;font-weight:400}
+.task-form label{margin:0}
+.reference-category{min-width:110px}
+
+/* Larger touch targets and prevent Safari's focus zoom on iPhone */
+@media(max-width:680px){
+  .shell{padding:12px 12px 26px}
+  .brand-title h1{font-size:21px}
+  .tabs button{font-size:13px;padding:11px 12px}
+  .status-message{font-size:14px}
+  .item-list,.editor,.panel{padding:16px}
+  .item-scroll{max-height:340px}
+  .item-row{padding:12px 9px}
+  .editor-heading h2{font-size:26px}
+  .identity-strip{flex-wrap:wrap;gap:16px}
+  .expert-instructions{padding:15px}
+  .expert-instructions li,.expert-instructions p{font-size:14px}
+  .record-controls{justify-content:stretch}
+  .record-button,.mic-setup-button{width:100%;min-width:0;min-height:54px;font-size:15px}
+  .record-hint{text-align:left;font-size:13px}
+  .optional-notes textarea,.task-form textarea,.task-form input{font-size:16px}
+  .search-input,.filter-select,.editor input,.editor textarea,.editor select{font-size:16px!important;min-height:46px}
+  .editor textarea,.optional-notes textarea,.task-form textarea{min-height:88px}
+  .audio-row{gap:8px;padding:13px 0}
+  .audio-row audio{height:40px}
+  .audio-meta strong{font-size:13px}
+  .audio-meta span{font-size:11px}
+  .editor-bottom{font-size:12px}
+}
+
+/* iOS Safari zooms the page when focused controls use text smaller than 16px. */
+@supports (-webkit-touch-callout:none){
+  input,textarea,select{font-size:16px!important}
+}
