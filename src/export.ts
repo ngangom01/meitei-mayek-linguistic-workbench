@@ -23,11 +23,11 @@ async function shareOrDownload(blob: Blob, filename: string, title: string) {
 
 async function getAudioIndex(itemIds?: Set<string>) {
   const samples = itemIds
-    ? await db.audio.where('itemId').anyOf([...itemIds]).toArray()
+    ? await db.audio.where('itemId').anyOf(Array.from(itemIds)).toArray()
     : await db.audio.toArray()
   const index: Array<{ id: string; itemId: string; path: string; mimeType: string; durationMs: number; createdAt: string; label: string }> = []
   for (const sample of samples) {
-    const path = \`audio/\${sample.id}.bin\`
+    const path = 'audio/' + sample.id + '.bin'
     index.push({
       id: sample.id, itemId: sample.itemId, path, mimeType: sample.mimeType,
       durationMs: sample.durationMs, createdAt: sample.createdAt, label: sample.label
@@ -39,45 +39,47 @@ async function getAudioIndex(itemIds?: Set<string>) {
 export async function exportWorkspaceBackup() {
   const zip = new JSZip()
   const items = await db.items.toArray()
-  const { samples, index } = await getAudioIndex()
-  for (let i = 0; i < samples.length; i++) zip.file(index[i].path, samples[i].blob)
+  const result = await getAudioIndex()
+  for (let i = 0; i < result.samples.length; i++) zip.file(result.index[i].path, result.samples[i].blob)
   zip.file('manifest.json', JSON.stringify({
     packageType: 'mayek-workbench-backup',
     packageVersion: 1,
     createdAt: new Date().toISOString(),
     itemCount: items.length,
-    audioCount: index.length
+    audioCount: result.index.length
   }, null, 2))
   zip.file('items.json', JSON.stringify(items, null, 2))
-  zip.file('audio-index.json', JSON.stringify(index, null, 2))
+  zip.file('audio-index.json', JSON.stringify(result.index, null, 2))
   zip.file('README.txt', 'Complete local Workbench backup. Keep this file safe. Import it into the Workbench to restore items and recordings.')
   const blob = await zip.generateAsync({ type: 'blob' })
-  await shareOrDownload(blob, \`Meitei_Workbench_Backup_\${new Date().toISOString().slice(0, 10)}.zip\`, 'Workbench backup')
+  const date = new Date().toISOString().slice(0, 10)
+  await shareOrDownload(blob, 'Meitei_Workbench_Backup_' + date + '.zip', 'Workbench backup')
 }
 
 export async function exportReviewPackage(items: ReviewItem[]) {
   const zip = new JSZip()
-  const { samples, index } = await getAudioIndex(new Set(items.map(item => item.id)))
-  for (let i = 0; i < samples.length; i++) zip.file(index[i].path, samples[i].blob)
+  const result = await getAudioIndex(new Set(items.map(item => item.id)))
+  for (let i = 0; i < result.samples.length; i++) zip.file(result.index[i].path, result.samples[i].blob)
   zip.file('manifest.json', JSON.stringify({
     packageType: 'mayek-linguistic-review-submission',
     packageVersion: 1,
     createdAt: new Date().toISOString(),
     itemCount: items.length,
-    audioCount: index.length,
+    audioCount: result.index.length,
     compatibility: 'Workbench transport format; not a direct Academy import file.'
   }, null, 2))
   zip.file('review-items.json', JSON.stringify(items, null, 2))
-  zip.file('audio-index.json', JSON.stringify(index, null, 2))
+  zip.file('audio-index.json', JSON.stringify(result.index, null, 2))
   zip.file('README.txt', [
     'MEITEI MAYEK LINGUISTIC REVIEW SUBMISSION',
     '',
     'This package contains expert review fields and the associated original audio recordings.',
     'This is a Workbench transport package, not a direct Academy import file.',
     'The Academy owner must validate the content and map approved changes to the Academy schema.'
-  ].join('\\n'))
+  ].join('\n'))
   const blob = await zip.generateAsync({ type: 'blob' })
-  await shareOrDownload(blob, \`Meitei_Review_Submission_\${new Date().toISOString().slice(0, 10)}.zip\`, 'Review submission')
+  const date = new Date().toISOString().slice(0, 10)
+  await shareOrDownload(blob, 'Meitei_Review_Submission_' + date + '.zip', 'Review submission')
 }
 
 export async function importReviewItemsJson(file: File) {
@@ -137,8 +139,7 @@ export async function restoreWorkspaceBackup(file: File) {
   const rawIndex: unknown = audioIndexFile ? JSON.parse(await audioIndexFile.async('string')) : []
   if (!Array.isArray(rawIndex)) throw new Error('The backup audio index is invalid.')
 
-  // Read ZIP entries before opening the IndexedDB transaction. ZIP decompression
-  // may take time and must not leave the browser transaction idle.
+  // Decompress archive entries before opening the IndexedDB transaction.
   const audioRecords: AudioSample[] = []
   let skippedAudio = 0
   for (const entry of rawIndex as Array<Record<string, unknown>>) {
