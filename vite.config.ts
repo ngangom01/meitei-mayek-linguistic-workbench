@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,woff2}']
+        globPatterns: ['**/*.{js,css,html,json,svg,woff2}']
       }
     })
   ]
