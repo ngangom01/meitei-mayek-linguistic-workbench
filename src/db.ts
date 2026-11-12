@@ -9,6 +9,7 @@ export interface ReviewItem {
   glyph: string
   unicodeSequence: string
   displayLabel: string
+  romanForm: string
   letterName: string
   pronunciation: string
   writingNotes: string
@@ -58,6 +59,7 @@ export function normalizeReviewItem(value: unknown): ReviewItem | null {
     glyph: text('glyph'),
     unicodeSequence: text('unicodeSequence'),
     displayLabel: text('displayLabel') || 'Untitled review item',
+    romanForm: text('romanForm') || text('letterName'),
     letterName: text('letterName'),
     pronunciation: text('pronunciation'),
     writingNotes: text('writingNotes'),
@@ -113,6 +115,16 @@ class WorkbenchDB extends Dexie {
       items: 'id, category, reviewStatus, audioReviewStatus, updatedAt',
       audio: 'id, itemId, createdAt',
       settings: '&key'
+    })
+    this.version(5).stores({
+      items: 'id, category, reviewStatus, audioReviewStatus, updatedAt',
+      audio: 'id, itemId, createdAt',
+      settings: '&key'
+    }).upgrade(async tx => {
+      await tx.table('items').toCollection().modify(item => {
+        const row = item as ReviewItem & { romanForm?: string }
+        if (typeof row.romanForm !== 'string') row.romanForm = typeof row.letterName === 'string' ? row.letterName : ''
+      })
     })
   }
 }
