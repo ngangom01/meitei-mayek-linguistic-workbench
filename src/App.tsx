@@ -44,7 +44,7 @@ export default function App() {
   async function refreshItems() {
     const rows = await db.items.orderBy('updatedAt').reverse().toArray()
     setItems(rows)
-    setSelected(current => current || rows[0]?.id || '')
+    setSelected(current => rows.some(row => row.id === current) ? current : (rows[0]?.id || ''))
     setTotalAudioCount(await db.audio.count())
   }
 
@@ -52,7 +52,29 @@ export default function App() {
     let cancelled = false
     async function initialiseWorkspace() {
       try {
-        const seedMarker = await db.settings.get('review-seed-v1')
+        // Remove the video and BOSEM chapter queue from older local Workbench
+        // versions without touching the character records or other expert work.
+        await db.transaction('rw', db.items, db.audio, async () => {
+          const existingItems = await db.items.toArray()
+          for (const item of existingItems) {
+            const isRetiredSource = item.id.startsWith('source.video.') ||
+              item.id.startsWith('lesson.bosem.class1.chapter-')
+            if (isRetiredSource) {
+              await db.audio.where('itemId').equals(item.id).delete()
+              await db.items.delete(item.id)
+              continue
+            }
+            let category = item.category
+            if (category === 'Core letter') category = 'Core letters'
+            if (category === 'Lonsum letter') category = 'Lonsum / consonants'
+            if (category === 'Dependent vowel sign') category = 'Cheitap / vowels'
+            if (category !== item.category) {
+              await db.items.update(item.id, { category, updatedAt: item.updatedAt })
+            }
+          }
+        })
+
+        const seedMarker = await db.settings.get('review-seed-v2')
         if (!seedMarker) {
           const response = await fetch(import.meta.env.BASE_URL + 'review-items.json')
           if (!response.ok) throw new Error('The review dataset could not be downloaded (HTTP ' + response.status + ').')
@@ -81,7 +103,7 @@ export default function App() {
               await db.items.add(item)
               inserted++
             }
-            await db.settings.put({ key: 'review-seed-v1', value: String(seedItems.length) })
+            await db.settings.put({ key: 'review-seed-v2', value: String(seedItems.length) })
           })
           await refreshItems()
           if (!cancelled) {
