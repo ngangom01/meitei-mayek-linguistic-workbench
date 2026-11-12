@@ -61,11 +61,16 @@ button:hover{border-color:#82927e;background:#f7f9f5}button:disabled{opacity:.45
 .form-grid input,.form-grid textarea,.form-grid select{display:block;margin-top:6px;font-weight:400}
 .form-grid textarea{resize:vertical;line-height:1.5}.form-grid .full{grid-column:1/-1}
 .recording-panel{margin-top:23px;padding-top:17px;border-top:1px solid #e9ede5}.recording-panel h3{font-size:14px;margin:0}
-.compact{margin:7px 0 13px}.record-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.record-button,.stop-button{font-size:11px}.record-button{border-color:#e4d0cb;color:#a24b40}
-.stop-button{background:#a8483e;color:#fff;border-color:#a8483e}
-.record-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#bd5448;margin-right:6px}
-.stop-square{display:inline-block;width:9px;height:9px;background:white;margin-right:6px}.recording-indicator{font-size:10px;color:#b24d43}
+.compact{margin:7px 0 13px}.record-controls{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+.record-button,.mic-setup-button{min-width:225px;font-size:11px;text-align:center;touch-action:none;user-select:none;-webkit-user-select:none}
+.record-button{border-color:#e4d0cb;color:#a24b40;background:#fff}
+.record-button.is-recording{background:#a8483e;color:#fff;border-color:#a8483e}
+.record-button.is-recording .record-dot{background:#fff;animation:record-pulse 1.2s ease-in-out infinite}
+.record-button.is-requesting{background:#faf4e9;color:#8a6c3c;border-color:#e8d9bd}
+.mic-setup-button{background:#edf3e9;color:#38543b;border-color:#d5e0cf}
+.record-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#bd5448;margin-right:7px;vertical-align:middle}
+.record-hint{margin:8px 0 0;text-align:right;font-size:10px;color:#828b7d;line-height:1.5}
+@keyframes record-pulse{50%{opacity:.45;transform:scale(.82)}}
 .audio-list{margin-top:12px}.audio-row{display:grid;grid-template-columns:minmax(110px,1fr) minmax(150px,1.2fr) auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #edf0e9}
 .audio-meta{display:flex;flex-direction:column;gap:4px;min-width:0}.audio-meta strong{font-size:10px}.audio-meta span{font-size:9px;color:#818a7e}
 .audio-row audio{width:100%;height:32px}.audio-row .quiet{justify-self:end}
