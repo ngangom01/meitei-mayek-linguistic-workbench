@@ -222,7 +222,7 @@
     },
     {
       "id": "char.abcb",
-      "category": "Core letter",
+      "category": "Core letters",
       "glyph": "ꯋ",
       "unicodeSequence": "U+ABCB",
       "displayLabel": "MEETEI MAYEK LETTER WAI",
@@ -240,7 +240,7 @@
     },
     {
       "id": "char.abcc",
-      "category": "Core letter",
+      "category": "Core letters",
       "glyph": "ꯌ",
       "unicodeSequence": "U+ABCC",
       "displayLabel": "MEETEI MAYEK LETTER YANG",
@@ -258,7 +258,7 @@
     },
     {
       "id": "char.abcd",
-      "category": "Core letter",
+      "category": "Core letters",
       "glyph": "ꯍ",
       "unicodeSequence": "U+ABCD",
       "displayLabel": "MEETEI MAYEK LETTER HUK",
@@ -276,7 +276,7 @@
     },
     {
       "id": "char.abce",
-      "category": "Core letter",
+      "category": "Core letters",
       "glyph": "ꯎ",
       "unicodeSequence": "U+ABCE",
       "displayLabel": "MEETEI MAYEK LETTER UN",
@@ -294,7 +294,7 @@
     },
     {
       "id": "char.abcf",
-      "category": "Core letter",
+      "category": "Core letters",
       "glyph": "ꯏ",
       "unicodeSequence": "U+ABCF",
       "displayLabel": "MEETEI MAYEK LETTER I",
