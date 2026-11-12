@@ -470,7 +470,7 @@ export default function App() {
 
   return <main className="shell">
     <header className="topbar">
-      <div className="brand-mark" aria-hidden="true">ꯃ</div>
+      <img className="brand-mark" src={import.meta.env.BASE_URL + 'favicon.svg'} alt="" aria-hidden="true" />
       <div className="brand-title"><div className="eyebrow">MEITEI MAYEK ACADEMY · EXPERT TOOL</div><h1>Linguistic Review Workbench</h1><p>Capture pronunciation, add optional notes, return expert feedback.</p></div>
       <span className="local-tag"><span className="live-dot" /> Stored on this device</span>
     </header>
