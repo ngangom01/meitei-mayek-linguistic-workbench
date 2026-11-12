@@ -4,7 +4,7 @@ An independent, local-first review tool for one or two linguistic experts. Impor
 
 ## Use the Workbench
 
-Open the deployed HTTPS link, then choose **Import review items** or **New review item**.
+Open the deployed HTTPS link. On the first visit in a browser, the Workbench automatically loads the starter review queue (69 records) from `public/review-items.json`. The expert can begin in **Review workspace** immediately.
 
 - Review fields: glyph, Unicode sequence, character name, pronunciation, writing notes, syllable/combination examples, variants and source references.
 - Linguistic review and audio review have separate statuses.
@@ -23,7 +23,7 @@ Open the deployed HTTPS link, then choose **Import review items** or **New revie
 
 ## Import format
 
-Use **Download JSON template** in the app. Each record must have a stable, unique `id`. The format is:
+The initial project dataset is maintained in `public/review-items.json`. For additional batches, use **Download JSON template** in the app. Each record must have a stable, unique `id`. The format is:
 
 ```json
 {
