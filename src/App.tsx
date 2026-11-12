@@ -35,9 +35,15 @@ export default function App() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [message, setMessage] = useState('Your reviews and recordings stay in this browser on this device.')
   const [recording, setRecording] = useState(false)
+  const [requestingRecording, setRequestingRecording] = useState(false)
+  const [microphoneReady, setMicrophoneReady] = useState(false)
+  const [checkingMicrophone, setCheckingMicrophone] = useState(true)
+  const [preparingMicrophone, setPreparingMicrophone] = useState(false)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const startedAtRef = useRef(0)
+  const recordingIntentRef = useRef(false)
+  const recordPressActiveRef = useRef(false)
   const importItemsRef = useRef<HTMLInputElement>(null)
   const restoreBackupRef = useRef<HTMLInputElement>(null)
 
@@ -133,6 +139,32 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+    let permissionStatus: PermissionStatus | undefined
+    async function checkMicrophonePermission() {
+      try {
+        if (navigator.permissions?.query) {
+          permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+          if (!cancelled) setMicrophoneReady(permissionStatus.state === 'granted')
+          permissionStatus.onchange = () => {
+            if (!cancelled) setMicrophoneReady(permissionStatus?.state === 'granted')
+          }
+        }
+      } catch {
+        // The permission query is not supported in every browser; the user can
+        // still grant microphone access through the explicit setup button.
+      } finally {
+        if (!cancelled) setCheckingMicrophone(false)
+      }
+    }
+    void checkMicrophonePermission()
+    return () => {
+      cancelled = true
+      if (permissionStatus) permissionStatus.onchange = null
+    }
+  }, [])
+
+  useEffect(() => {
     if (!selected) {
       setAudioSamples([])
       return
@@ -153,6 +185,7 @@ export default function App() {
   }, [])
 
   const active = items.find(item => item.id === selected)
+  const recordingBusy = recording || requestingRecording || preparingMicrophone
   const categories = useMemo(() => [...new Set(items.map(item => item.category).filter(Boolean))].sort(), [items])
   const filteredItems = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
@@ -209,14 +242,49 @@ export default function App() {
     setMessage('Recording deleted from this device.')
   }
 
-  async function startRecording() {
-    if (!active || recording) return
+  async function prepareMicrophone() {
+    if (preparingMicrophone || microphoneReady) return
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
       setMessage('Audio recording is not supported by this browser. Use a current Chrome, Edge or Safari browser over HTTPS.')
       return
     }
+    setPreparingMicrophone(true)
+    setMessage('Allow microphone access in the browser prompt. This setup is needed only once on this device.')
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach(track => track.stop())
+      setMicrophoneReady(true)
+      setMessage('Microphone ready. Press and hold the recording button; release it to stop and save the sample.')
+    } catch (error) {
+      const name = error instanceof DOMException ? error.name : ''
+      setMessage(name === 'NotAllowedError'
+        ? 'Microphone access was blocked. Allow it in the site permissions beside the browser address bar, then try again.'
+        : 'Could not access the microphone. Check that it is connected and not being used by another app.')
+    } finally {
+      setPreparingMicrophone(false)
+    }
+  }
+
+  async function startRecording() {
+    if (!active || recording || requestingRecording || recordingIntentRef.current) return
+    if (!microphoneReady) {
+      setMessage('Enable microphone access before recording.')
+      return
+    }
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      setMessage('Audio recording is not supported by this browser. Use a current Chrome, Edge or Safari browser over HTTPS.')
+      return
+    }
+    recordingIntentRef.current = true
+    setRequestingRecording(true)
+    setMessage('Starting microphone… keep holding the button.')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (!recordingIntentRef.current) {
+        stream.getTracks().forEach(track => track.stop())
+        setRequestingRecording(false)
+        return
+      }
       const supportedTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
       const mimeType = supportedTypes.find(type => MediaRecorder.isTypeSupported(type))
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
@@ -232,7 +300,10 @@ export default function App() {
         stream.getTracks().forEach(track => track.stop())
         streamRef.current = null
         recorderRef.current = null
+        recordingIntentRef.current = false
+        recordPressActiveRef.current = false
         setRecording(false)
+        setRequestingRecording(false)
         if (blob.size > 0) {
           const count = await db.audio.where('itemId').equals(itemId).count()
           const sample: AudioSample = {
@@ -245,16 +316,21 @@ export default function App() {
           setTotalAudioCount(await db.audio.count())
           setMessage('Recording saved locally. Play it back to check the sound.')
         } else {
-          setMessage('No audio data was captured. Please try recording again.')
+          setMessage('No audio data was captured. Please hold the button a little longer and try again.')
         }
       }
       streamRef.current = stream
       recorderRef.current = recorder
       startedAtRef.current = Date.now()
       recorder.start()
+      setRequestingRecording(false)
       setRecording(true)
-      setMessage('Recording… speak clearly, then press Stop recording.')
+      setMessage('Recording… release the button to stop and save.')
     } catch (error) {
+      recordingIntentRef.current = false
+      recordPressActiveRef.current = false
+      setRequestingRecording(false)
+      setRecording(false)
       const name = error instanceof DOMException ? error.name : ''
       setMessage(name === 'NotAllowedError'
         ? 'Microphone access was blocked. Allow microphone access in your browser settings and try again.'
@@ -263,7 +339,21 @@ export default function App() {
   }
 
   function stopRecording() {
-    if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop()
+    recordingIntentRef.current = false
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+      recorderRef.current.stop()
+      return
+    }
+    if (requestingRecording) {
+      setRequestingRecording(false)
+      setMessage('Recording cancelled before the microphone was ready.')
+    }
+  }
+
+  function endRecordingPress() {
+    if (!recordPressActiveRef.current) return
+    recordPressActiveRef.current = false
+    stopRecording()
   }
 
   async function handleItemsImport(file?: File) {
@@ -341,9 +431,9 @@ export default function App() {
     </header>
 
     <nav className="tabs" aria-label="Main navigation">
-      <button disabled={recording} className={tab === 'home' ? 'active' : ''} onClick={() => setTab('home')}>Overview</button>
-      <button disabled={recording} className={tab === 'review' ? 'active' : ''} onClick={() => setTab('review')}>Review workspace <span className="count">{items.length}</span></button>
-      <button disabled={recording} className={tab === 'share' ? 'active' : ''} onClick={() => setTab('share')}>Backup & share</button>
+      <button disabled={recordingBusy} className={tab === 'home' ? 'active' : ''} onClick={() => setTab('home')}>Overview</button>
+      <button disabled={recordingBusy} className={tab === 'review' ? 'active' : ''} onClick={() => setTab('review')}>Review workspace <span className="count">{items.length}</span></button>
+      <button disabled={recordingBusy} className={tab === 'share' ? 'active' : ''} onClick={() => setTab('share')}>Backup & share</button>
     </nav>
 
     <div className="status-message" role="status">{message}</div>
@@ -384,7 +474,7 @@ export default function App() {
 
     {tab === 'review' && <section className="review-layout">
       <aside className="panel item-list">
-        <div className="section-head"><div><p className="eyebrow">ASSIGNED MATERIAL</p><h2>Review items <span className="count">{items.length}</span></h2></div><button className="small-button" disabled={recording} onClick={() => void addBlankItem()}>＋ Add</button></div>
+        <div className="section-head"><div><p className="eyebrow">ASSIGNED MATERIAL</p><h2>Review items <span className="count">{items.length}</span></h2></div><button className="small-button" disabled={recordingBusy} onClick={() => void addBlankItem()}>＋ Add</button></div>
         <input className="search-input" aria-label="Search review items" placeholder="Search glyph, label or ID…" value={search} onChange={event => setSearch(event.target.value)} />
         <select className="filter-select" aria-label="Filter by status" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
           <option value="all">All review statuses</option>
@@ -397,7 +487,7 @@ export default function App() {
         </select>
         {filteredItems.length === 0 && <div className="empty-list"><strong>{items.length ? 'No matching items' : 'No items yet'}</strong><p>{items.length ? 'Try another search or status filter.' : 'Import assigned items or create the first record.'}</p></div>}
         <div className="item-scroll">
-          {filteredItems.map(item => <button key={item.id} className={'item-row ' + (selected === item.id ? 'chosen' : '')} disabled={recording} onClick={() => setSelected(item.id)}>
+          {filteredItems.map(item => <button key={item.id} className={'item-row ' + (selected === item.id ? 'chosen' : '')} disabled={recordingBusy} onClick={() => setSelected(item.id)}>
             <span className="item-glyph">{item.glyph || '—'}</span><span className="item-text"><strong>{item.displayLabel || 'Untitled item'}</strong><span>{item.category || 'Uncategorised'} · {item.id.slice(0, 12)}</span><em className={'status status-' + item.reviewStatus}>{statusLabels[item.reviewStatus]}</em></span>
           </button>)}
         </div>
@@ -406,7 +496,7 @@ export default function App() {
 
       <section className="panel editor">
         {!active ? <div className="editor-empty"><div className="empty-symbol">ꯃ</div><h2>Select a review item</h2><p>Choose a record from the list or import assigned items.</p><button className="primary" onClick={() => void addBlankItem()}>Create review item</button></div> : <>
-          <div className="editor-heading"><div><p className="eyebrow">RECORD REVIEW</p><h2>{active.glyph || active.displayLabel}</h2><p className="record-id">Record ID: <code>{active.id}</code></p></div><button className="quiet danger" disabled={recording} onClick={() => void deleteItem(active)}>Delete item</button></div>
+          <div className="editor-heading"><div><p className="eyebrow">RECORD REVIEW</p><h2>{active.glyph || active.displayLabel}</h2><p className="record-id">Record ID: <code>{active.id}</code></p></div><button className="quiet danger" disabled={recordingBusy} onClick={() => void deleteItem(active)}>Delete item</button></div>
 
           <div className="identity-strip">
             <div><span>Glyph / character</span><strong className="large-glyph">{active.glyph || '—'}</strong></div>
@@ -438,9 +528,49 @@ export default function App() {
             <div className="section-head"><div><p className="eyebrow">AUDIO REVIEW</p><h3>Pronunciation recordings</h3></div><span className="count">{audioSamples.length} sample(s)</span></div>
             <p className="muted compact">Record one or more samples. The original audio is kept locally and included in the review ZIP.</p>
             <div className="record-controls">
-              {!recording ? <button className="record-button" onClick={() => void startRecording()}><span className="record-dot" /> Start recording</button> : <button className="stop-button" onClick={stopRecording}><span className="stop-square" /> Stop recording</button>}
-              {recording && <span className="recording-indicator">Recording…</span>}
+              {!microphoneReady ? <button
+                type="button"
+                className="mic-setup-button"
+                disabled={checkingMicrophone || preparingMicrophone}
+                onClick={() => void prepareMicrophone()}
+              >
+                <span className="record-dot" /> {preparingMicrophone ? 'Requesting microphone…' : checkingMicrophone ? 'Checking microphone…' : 'Enable microphone'}
+              </button> : <button
+                type="button"
+                className={'record-button' + (recording ? ' is-recording' : '') + (requestingRecording ? ' is-requesting' : '')}
+                aria-label={recording ? 'Release to stop recording' : 'Press and hold to record'}
+                aria-pressed={recording || requestingRecording}
+                onPointerDown={event => {
+                  if (event.button !== 0 || recordPressActiveRef.current) return
+                  recordPressActiveRef.current = true
+                  try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* Pointer capture is an enhancement. */ }
+                  if (!recordingBusy) void startRecording()
+                }}
+                onPointerUp={endRecordingPress}
+                onPointerCancel={endRecordingPress}
+                onLostPointerCapture={endRecordingPress}
+                onKeyDown={event => {
+                  if ((event.key === ' ' || event.key === 'Enter') && !event.repeat && !recordPressActiveRef.current) {
+                    event.preventDefault()
+                    recordPressActiveRef.current = true
+                    if (!recordingBusy) void startRecording()
+                  }
+                }}
+                onKeyUp={event => {
+                  if (event.key === ' ' || event.key === 'Enter') {
+                    event.preventDefault()
+                    endRecordingPress()
+                  }
+                }}
+                onBlur={endRecordingPress}
+              >
+                <span className="record-dot" />
+                {requestingRecording ? 'Starting recording…' : recording ? 'Release to stop' : 'Press and hold to record'}
+              </button>}
             </div>
+            <p className="record-hint">{microphoneReady
+              ? 'Hold the button while speaking. Release anywhere to stop and save the recording.'
+              : 'First time only: enable microphone access, then the press-and-hold recording control will appear.'}</p>
             {audioSamples.length > 0 ? <div className="audio-list">{audioSamples.map(sample => <AudioRow key={sample.id} sample={sample} onDelete={() => void deleteAudio(sample)} />)}</div> : <p className="audio-empty">No recordings attached to this item yet.</p>}
           </div>
 
