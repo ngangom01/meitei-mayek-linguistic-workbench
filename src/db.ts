@@ -22,6 +22,11 @@ export interface ReviewItem {
   updatedAt: string
 }
 
+export interface WorkbenchSetting {
+  key: string
+  value: string
+}
+
 export interface AudioSample {
   id: string
   itemId: string
@@ -70,6 +75,7 @@ export function normalizeReviewItem(value: unknown): ReviewItem | null {
 class WorkbenchDB extends Dexie {
   items!: Table<ReviewItem, string>
   audio!: Table<AudioSample, string>
+  settings!: Table<WorkbenchSetting, string>
 
   constructor() {
     super('meitei-mayek-review-workbench')
@@ -102,6 +108,11 @@ class WorkbenchDB extends Dexie {
         const row = item as ReviewItem
         if (typeof row.audioReviewStatus !== 'string') row.audioReviewStatus = 'not_reviewed'
       })
+    })
+    this.version(4).stores({
+      items: 'id, category, reviewStatus, audioReviewStatus, updatedAt',
+      audio: 'id, itemId, createdAt',
+      settings: '&key'
     })
   }
 }
