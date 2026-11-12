@@ -63,6 +63,7 @@ export default function App() {
         // versions without touching the character records or other expert work.
         await db.transaction('rw', db.items, db.audio, async () => {
           const existingItems = await db.items.toArray()
+          const recordedItemIds = new Set((await db.audio.toArray()).map(sample => sample.itemId))
           for (const item of existingItems) {
             const isRetiredSource = item.id.startsWith('source.video.') ||
               item.id.startsWith('lesson.bosem.class1.chapter-')
@@ -71,6 +72,11 @@ export default function App() {
               await db.items.delete(item.id)
               retiredRemoved++
               continue
+            }
+            // Existing browser recordings also count as completed character audio.
+            if (!item.id.startsWith('task.') && recordedItemIds.has(item.id) &&
+              (item.reviewStatus !== 'reviewed' || item.audioReviewStatus !== 'accepted')) {
+              await db.items.update(item.id, { reviewStatus: 'reviewed', audioReviewStatus: 'accepted' })
             }
             let category = item.category
             if (category === 'Core letter') category = 'Core letters'
@@ -471,7 +477,7 @@ export default function App() {
       <div className="panel hero">
         <p className="eyebrow">EXPERT WORKSPACE</p>
         <h2>One place to review<br />Meitei Mayek material.</h2>
-        <p className="muted">Check character details, add pronunciation guidance and comments, record audio, then return a review package to the Academy owner.</p>
+        <p className="muted">Record one clear sound for each character, add a note only when something needs explanation, then return the audio package to the Academy owner.</p>
         <div className="actions">
           <button className="primary" onClick={() => setTab('review')}>Open review workspace <span aria-hidden="true">→</span></button>
           <button onClick={() => void addBlankItem()}>＋ New review item</button>
@@ -495,8 +501,8 @@ export default function App() {
       <div className="panel guidance">
         <p className="eyebrow">HOW THE EXPERT WORKFLOW WORKS</p>
         <div className="step"><span>01</span><div><strong>Load assigned records</strong><p>Import a Workbench JSON file or create items manually. Keep the stable record ID supplied by the Academy.</p></div></div>
-        <div className="step"><span>02</span><div><strong>Review the content</strong><p>Check character identity and enter names, pronunciation, writing notes, combinations and questions.</p></div></div>
-        <div className="step"><span>03</span><div><strong>Record and listen</strong><p>Attach one or more original audio samples to each item. Retake or remove a sample as needed.</p></div></div>
+        <div className="step"><span>02</span><div><strong>Record the sound</strong><p>Each character and sign is already identified. One clear audio recording is the only required contribution.</p></div></div>
+        <div className="step"><span>03</span><div><strong>Listen and add notes only if needed</strong><p>Replay the recording. Add another sample only for a meaningful variant; notes are optional.</p></div></div>
         <div className="step"><span>04</span><div><strong>Return your review</strong><p>Export a review ZIP and send it to the Academy owner. The owner validates and applies approved changes.</p></div></div>
       </div>
     </section>}
