@@ -1,54 +1,88 @@
 # Meitei Mayek Linguistic Review Workbench
 
-A small, local-first tool for **one or two linguistic experts** to review Academy content, record pronunciations, and send review packages to the Academy owner.
+An independent, local-first review tool for one or two linguistic experts. Import assigned records, review their linguistic details, record and replay pronunciation samples, and return a review ZIP to the Academy owner.
 
-## Product decisions
+## Use the Workbench
 
-- No accounts, login, roles, backend, database server, or cloud sync.
-- Works as an installable, responsive web app (PWA).
-- Designed for phones, tablets, and desktop browsers.
-- Drafts and recordings stay in the current browser on the current device.
-- Expert can export a portable backup to move work to another device.
-- Expert can export a review ZIP and share it using the device share sheet, or download it.
-- No Google Drive integration.
-- No automatic publishing. The Academy owner checks and imports submissions.
-- Keep the expert workflow to: **Open → Review → Record → Share**.
+Open the deployed HTTPS link, then choose **Import review items** or **New review item**.
 
-## Important limitation
+- Review fields: glyph, Unicode sequence, character name, pronunciation, writing notes, syllable/combination examples, variants and source references.
+- Review status: not reviewed, in progress, needs clarification, reviewed.
+- Audio: record multiple samples, replay them, and delete a sample.
+- Backup: export and restore all local items and recordings.
+- Submission: export/share a ZIP containing review data and original audio.
 
-Browser storage is local to each device/browser. It is not synchronised. The expert should export a backup before changing devices or clearing browser data. The share sheet only hands the package to the selected app; it does not confirm that the recipient received it.
+## Important data behaviour
 
-## Start locally
+- No account, backend, cloud database or automatic sync.
+- Data is stored in IndexedDB in the current browser on the current device.
+- Export a backup regularly and before clearing browser data or changing devices.
+- Backup restore merges by stable record ID; it does not overwrite existing IDs.
+- The share sheet hands the file to the selected app; it does not prove delivery.
+- Do not enter personal or confidential information into review notes.
 
-Requirements: Node.js 20+ and npm.
+## Import format
 
-```bash
+Use **Download JSON template** in the app. Each record must have a stable, unique \`id\`. The format is:
+
+\`\`\`json
+{
+  "format": "mayek-workbench-items",
+  "version": 1,
+  "items": [
+    {
+      "id": "stable-source-record-id",
+      "category": "",
+      "glyph": "",
+      "unicodeSequence": "",
+      "displayLabel": "",
+      "letterName": "",
+      "pronunciation": "",
+      "writingNotes": "",
+      "syllableExamples": "",
+      "variantNotes": "",
+      "sourceReference": "",
+      "reviewStatus": "not_reviewed",
+      "expertNotes": ""
+    }
+  ]
+}
+\`\`\`
+
+Duplicate IDs are skipped on import; existing records are never silently overwritten. The JSON import uses this Workbench format and does not guess the Academy data schema.
+
+## Review submission
+
+The submission ZIP includes \`review-items.json\`, \`audio-index.json\`, and the original audio recordings. It is a Workbench review package, not a direct Academy import file. The Academy owner validates and applies approved changes separately.
+
+## Run locally
+
+Requirements: Node.js 20+ and npm. Do not upload \`node_modules\`; npm recreates it from the package manifest.
+
+\`\`\`powershell
 npm install
 npm run dev
-```
-
-Open the local URL shown by Vite. Microphone recording and native file sharing require a secure context (HTTPS, or localhost during development).
+\`\`\`
 
 ## Build
 
-```bash
+\`\`\`powershell
 npm run build
 npm run preview
-```
+\`\`\`
 
-Deploy the `dist/` folder to any static HTTPS host. GitHub Pages is suitable once the base path is configured for the repository.
+## GitHub Pages
 
-## Before using real Academy content
+This repository is configured to deploy automatically from the \`main\` branch using GitHub Actions. In the repository settings, set:
 
-Do not invent or hard-code linguistic data. The current starter uses an empty workspace. Before connecting Academy content:
+**Settings → Pages → Build and deployment → Source → GitHub Actions**
 
-1. Confirm the current Academy content schema and audio metadata from the Academy repository.
-2. Implement the adapter in `src/academyAdapter.ts` to match that schema exactly.
-3. Import the approved Academy character/combination records.
-4. Test an exported package against the Academy's validation/import process.
+The expert-facing link is:
 
-The Workbench must not create a competing Academy content schema. The sample export envelope in this starter is a transport format only; the `content` payload must be replaced by the approved Academy schema adapter.
+https://ngangom01.github.io/meitei-mayek-linguistic-workbench/
 
-## Project scope
+The GitHub repository page displays source code; share the \`github.io\` link above with the expert.
 
-This is deliberately not a collaboration platform. There is no user management, live multi-device sync, comments system, cloud service, analytics, or complex workflow engine.
+## Privacy and browser support
+
+Microphone access requires HTTPS (or localhost during development) and permission. Recordings are not uploaded by the app. Browser storage can be cleared by the browser or device, so backups are essential. Use a current browser such as Chrome, Edge or Safari.
