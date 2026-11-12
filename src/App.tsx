@@ -199,7 +199,7 @@ export default function App() {
   const filteredItems = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
     return items.filter(item => {
-      const searchable = [item.id, item.glyph, item.displayLabel, item.category, item.letterName, item.pronunciation]
+      const searchable = [item.id, item.glyph, item.displayLabel, item.romanForm || '', item.category, item.letterName, item.pronunciation]
       const matchesText = !query || searchable.some(value => value.toLocaleLowerCase().includes(query))
       const matchesStatus = statusFilter === 'all' || item.reviewStatus === statusFilter
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter
@@ -226,7 +226,7 @@ export default function App() {
     const now = new Date().toISOString()
     const id = crypto.randomUUID()
     const item: ReviewItem = {
-      id, category: '', glyph: '', unicodeSequence: '', displayLabel: 'New review item',
+      id, category: '', glyph: '', unicodeSequence: '', displayLabel: 'New review item', romanForm: '',
       letterName: '', pronunciation: '', writingNotes: '', syllableExamples: '',
       variantNotes: '', sourceReference: '', reviewStatus: 'not_reviewed', audioReviewStatus: 'not_reviewed',
       expertNotes: '', createdAt: now, updatedAt: now
@@ -432,6 +432,7 @@ export default function App() {
         glyph: '',
         unicodeSequence: '',
         displayLabel: '',
+        romanForm: '',
         letterName: '',
         pronunciation: '',
         writingNotes: '',
@@ -532,7 +533,7 @@ export default function App() {
         {filteredItems.length === 0 && <div className="empty-list"><strong>{items.length ? 'No matching items' : 'No items yet'}</strong><p>{items.length ? 'Try another search or status filter.' : 'Import assigned items or create the first record.'}</p></div>}
         <div className="item-scroll">
           {filteredItems.map(item => <button key={item.id} className={'item-row ' + (selected === item.id ? 'chosen' : '')} disabled={recordingBusy} onClick={() => setSelected(item.id)}>
-            <span className="item-glyph">{item.glyph || '—'}</span><span className="item-text"><strong>{item.displayLabel || 'Untitled item'}</strong><span>{item.category || 'Uncategorised'} · {item.id.slice(0, 12)}</span><em className={'status status-' + item.reviewStatus}>{statusLabels[item.reviewStatus]}</em></span>
+            <span className="item-glyph">{item.glyph || '—'}</span><span className="item-text"><strong>{item.romanForm || item.displayLabel || 'Untitled item'}</strong><span>{item.category || 'Uncategorised'} · {item.id.slice(0, 12)}</span><em className={'status status-' + item.reviewStatus}>{statusLabels[item.reviewStatus]}</em></span>
           </button>)}
         </div>
         <div className="list-footer"><button className="text-button" onClick={() => importItemsRef.current?.click()}>Import JSON</button><button className="text-button" onClick={downloadTemplate}>Template</button></div>
@@ -540,12 +541,36 @@ export default function App() {
 
       <section className="panel editor">
         {!active ? <div className="editor-empty"><div className="empty-symbol">ꯃ</div><h2>Select a review item</h2><p>Choose a record from the list or import assigned items.</p><button className="primary" onClick={() => void addBlankItem()}>Create review item</button></div> : <>
-          <div className="editor-heading"><div><p className="eyebrow">RECORD REVIEW</p><h2>{active.glyph || active.displayLabel}</h2><p className="record-id">Record ID: <code>{active.id}</code></p></div><button className="quiet danger" disabled={recordingBusy} onClick={() => void deleteItem(active)}>Delete item</button></div>
+          <div className="editor-heading"><div><p className="eyebrow">RECORD REVIEW</p><h2>{active.glyph || active.romanForm || active.displayLabel}</h2><p className="record-id">Record ID: <code>{active.id}</code></p></div><button className="quiet danger" disabled={recordingBusy} onClick={() => void deleteItem(active)}>Delete item</button></div>
 
           <div className="identity-strip">
-            <div><span>{isCombinationTask || isPronunciationTask ? 'Review task' : 'Character / sign'}</span><strong className={isCharacterRecord ? 'large-glyph' : 'task-name'}>{isCharacterRecord ? (active.glyph || '—') : active.displayLabel}</strong></div>
+            <div><span>{isCombinationTask || isPronunciationTask ? 'Review task' : 'Character / sign'}</span><strong className={isCharacterRecord ? 'large-glyph' : 'task-name'}>{isCharacterRecord ? (active.glyph || active.romanForm || '—') : active.displayLabel}</strong></div>
             {isCharacterRecord && <div><span>Unicode reference</span><strong className="unicode">{active.unicodeSequence || 'Not supplied'}</strong></div>}
             {isCharacterRecord && <div className="reference-category"><span>Category</span><strong>{active.category}</strong></div>}
+          </div>
+
+          <div className="form-grid item-detail-fields">
+            <label className="full">Meitei Mayek form — character, word or combination
+              <input
+                value={active.glyph || ''}
+                onChange={e => void updateItem(active.id, { glyph: e.target.value })}
+                placeholder="Enter the Meitei Mayek character, word or combination"
+              />
+            </label>
+            <label>English / Roman name or spelling
+              <input
+                value={active.romanForm || ''}
+                onChange={e => void updateItem(active.id, { romanForm: e.target.value })}
+                placeholder="Enter the name or Roman spelling"
+              />
+            </label>
+            <label>Category
+              <input
+                value={active.category || ''}
+                onChange={e => void updateItem(active.id, { category: e.target.value })}
+                placeholder="For example: Word, Combination, Core letters"
+              />
+            </label>
           </div>
 
           {isCharacterRecord && <>
@@ -556,7 +581,7 @@ export default function App() {
                 <li><strong>Listen once.</strong> Keep the recording if it is clear; otherwise delete and record again.</li>
                 <li><strong>Add a note only when needed.</strong> Mention a meaningful dialect difference, alternative sound or uncertainty.</li>
               </ol>
-              <p>Character names, glyphs and Unicode references are supplied for identification. Please do not re-enter them.</p>
+              <p>Unicode references are technical identifiers. You may add or correct the Meitei Mayek form and its English/Roman name above; use a reliable source for linguistic details.</p>
             </div>
             <div className="optional-notes">
               <label>Optional note — only for a variant or uncertainty
