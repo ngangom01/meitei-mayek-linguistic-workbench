@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { db, type AudioSample, type ReviewItem, type ReviewStatus } from './db'
+import { db, normalizeReviewItem, type AudioSample, type ReviewItem, type ReviewStatus } from './db'
 import { exportWorkspaceBackup, exportReviewPackage, importReviewItemsJson, restoreWorkspaceBackup } from './export'
 
 type Tab = 'home' | 'review' | 'share'
@@ -32,6 +32,7 @@ export default function App() {
   const [selected, setSelected] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const [message, setMessage] = useState('Your reviews and recordings stay in this browser on this device.')
   const [recording, setRecording] = useState(false)
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -47,7 +48,60 @@ export default function App() {
     setTotalAudioCount(await db.audio.count())
   }
 
-  useEffect(() => { void refreshItems() }, [])
+  useEffect(() => {
+    let cancelled = false
+    async function initialiseWorkspace() {
+      try {
+        const seedMarker = await db.settings.get('review-seed-v1')
+        if (!seedMarker) {
+          const response = await fetch(import.meta.env.BASE_URL + 'review-items.json')
+          if (!response.ok) throw new Error('The review dataset could not be downloaded (HTTP ' + response.status + ').')
+          const payload: unknown = await response.json()
+          if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+            throw new Error('The review dataset has an invalid structure.')
+          }
+          const root = payload as Record<string, unknown>
+          if (root.format !== 'mayek-workbench-items' || !Array.isArray(root.items) || root.items.length === 0) {
+            throw new Error('The review dataset format or item list is invalid.')
+          }
+          const normalized = root.items.map(normalizeReviewItem)
+          if (normalized.some(item => item === null)) {
+            throw new Error('The review dataset contains an invalid record. No items were loaded.')
+          }
+          const seedItems = normalized as ReviewItem[]
+          const ids = new Set<string>()
+          for (const item of seedItems) {
+            if (ids.has(item.id)) throw new Error('The review dataset contains duplicate IDs. No items were loaded.')
+            ids.add(item.id)
+          }
+          let inserted = 0
+          await db.transaction('rw', db.items, db.settings, async () => {
+            for (const item of seedItems) {
+              if (await db.items.get(item.id)) continue
+              await db.items.add(item)
+              inserted++
+            }
+            await db.settings.put({ key: 'review-seed-v1', value: String(seedItems.length) })
+          })
+          await refreshItems()
+          if (!cancelled) {
+            setMessage('Preloaded ' + inserted + ' review item(s) from the project dataset. Existing local items were kept unchanged.')
+          }
+        } else {
+          await refreshItems()
+        }
+      } catch (error) {
+        await refreshItems()
+        if (!cancelled) {
+          setMessage(error instanceof Error
+            ? 'The starter review dataset could not be loaded: ' + error.message + ' You can still create items or import a JSON file.'
+            : 'The starter review dataset could not be loaded. You can still create items or import a JSON file.')
+        }
+      }
+    }
+    void initialiseWorkspace()
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     if (!selected) {
@@ -70,14 +124,17 @@ export default function App() {
   }, [])
 
   const active = items.find(item => item.id === selected)
+  const categories = useMemo(() => [...new Set(items.map(item => item.category).filter(Boolean))].sort(), [items])
   const filteredItems = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
     return items.filter(item => {
       const searchable = [item.id, item.glyph, item.displayLabel, item.category, item.letterName, item.pronunciation]
       const matchesText = !query || searchable.some(value => value.toLocaleLowerCase().includes(query))
-      return matchesText && (statusFilter === 'all' || item.reviewStatus === statusFilter)
+      const matchesStatus = statusFilter === 'all' || item.reviewStatus === statusFilter
+      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter
+      return matchesText && matchesStatus && matchesCategory
     })
-  }, [items, search, statusFilter])
+  }, [items, search, statusFilter, categoryFilter])
 
   async function updateItem(id: string, patch: Partial<ReviewItem>) {
     const current = await db.items.get(id)
@@ -305,6 +362,10 @@ export default function App() {
           <option value="not_reviewed">Not reviewed</option><option value="in_progress">In progress</option>
           <option value="needs_clarification">Needs clarification</option><option value="reviewed">Reviewed</option>
         </select>
+        <select className="filter-select" aria-label="Filter by category" value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}>
+          <option value="all">All categories</option>
+          {categories.map(category => <option key={category} value={category}>{category}</option>)}
+        </select>
         {filteredItems.length === 0 && <div className="empty-list"><strong>{items.length ? 'No matching items' : 'No items yet'}</strong><p>{items.length ? 'Try another search or status filter.' : 'Import assigned items or create the first record.'}</p></div>}
         <div className="item-scroll">
           {filteredItems.map(item => <button key={item.id} className={'item-row ' + (selected === item.id ? 'chosen' : '')} disabled={recording} onClick={() => setSelected(item.id)}>
@@ -333,7 +394,8 @@ export default function App() {
             <label className="full">Writing / stroke-order notes<textarea rows={3} value={active.writingNotes} onChange={e => void updateItem(active.id, { writingNotes: e.target.value })} placeholder="Describe the observed writing method or point to a source." /></label>
             <label className="full">Syllables / combinations / examples<textarea rows={3} value={active.syllableExamples} onChange={e => void updateItem(active.id, { syllableExamples: e.target.value })} placeholder="Record source examples and expert corrections." /></label>
             <label className="full">Variants or unresolved questions<textarea rows={2} value={active.variantNotes} onChange={e => void updateItem(active.id, { variantNotes: e.target.value })} placeholder="Record variant forms, uncertainty or questions." /></label>
-            <label>Source reference<input value={active.sourceReference} onChange={e => void updateItem(active.id, { sourceReference: e.target.value })} placeholder="Book, chapter, page, video timestamp…" /></label>
+            <label>Source reference<input value={active.sourceReference} onChange={e => void updateItem(active.id, { sourceReference: e.target.value })} placeholder="Book, chapter, page, video timestamp or URL…" /></label>
+            {active.sourceReference.match(/https?:\/\/[^\s]+/g) && <div className="source-links full">{(active.sourceReference.match(/https?:\/\/[^\s]+/g) || []).map(url => <a key={url} href={url} target="_blank" rel="noreferrer">Open source reference ↗</a>)}</div>}
             <label>Review status<select value={active.reviewStatus} onChange={e => void updateItem(active.id, { reviewStatus: e.target.value as ReviewStatus })}>
               {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select></label>
